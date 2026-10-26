@@ -67,7 +67,7 @@ ID_GOOGLE_DRIVE = "1llhosnqf0zf7FB8bsXgHtNLzbOjio2ro"
 
 # Columnas clave requeridas para los cálculos del dashboard
 COLUMNAS_SELECCIONADAS = [
-    "PLAN", "ORDER", "ORDER DETAIL", "REF", 
+    "PLAN", "ORDER", "ORDER DETAIL", "REF",
     "ESTATUS CHINA COLOMBIA", "ESTADO FINAL COLOMBIA",
     "COLOMBIA QTY", "COLOMBIA PAQS", "PLAN PLANEACION",
     "DIAS FICHA - CREACION", "DIAS CREACION - ENVIO", "DIAS ENVIO - CONFIRMACION",
@@ -79,51 +79,54 @@ def cargar_datos_desde_drive(file_id):
     try:
         session = requests.Session()
         url_base = "https://docs.google.com/uc?export=download"
-        
+
         # Primera solicitud para buscar si Google Drive pide confirmación de descarga por virus
         respuesta = session.get(url_base, params={'id': file_id}, stream=True)
-        
+
         token = None
         # Método 1: Buscar token en cookies
         for key, value in respuesta.cookies.items():
             if key.startswith('download_warning'):
                 token = value
                 break
-                
+
         # Método 2: Buscar token en el HTML de advertencia (si Google cambió las cookies)
         if not token:
             match = re.search(r'confirm=([a-zA-Z0-9_]+)', respuesta.text)
             if match:
                 token = match.group(1)
-                
+
         # Si se encontró un token de confirmación, hacemos la descarga final con el token
         if token:
             respuesta = session.get(url_base, params={'id': file_id, 'confirm': token}, stream=True)
-            
+
         respuesta.raise_for_status()
-        
+
         # Lee la pestaña "BASE" usando el motor openpyxl (100% compatible con flujos en memoria)
         df = pd.read_excel(BytesIO(respuesta.content), header=1, sheet_name="BASE", engine="openpyxl")
-        
+
         # Normalizar nombres de columnas a mayúsculas
         df.columns = [str(c).strip().upper() for c in df.columns]
-        
-        # Filtrar solo columnas existentes
+
+        # 🛡️ ELIMINAR COLUMNAS DUPLICADAS AUTOMÁTICAMENTE (Evita errores de PyArrow)
+        df = df.loc[:, ~df.columns.duplicated()]
+
+        # Filtrar solo columnas existentes de las seleccionadas
         cols_presentes = [c for c in COLUMNAS_SELECCIONADAS if c in df.columns]
         df = df[cols_presentes]
-        
+
         # Forzar conversión a texto para evitar errores en las tablas
         for col in df.columns:
             if col not in ["COLOMBIA QTY", "COLOMBIA PAQS", "PLAN PLANEACION", "DIAS FICHA - CREACION", "DIAS CREACION - ENVIO", "DIAS ENVIO - CONFIRMACION"]:
                 df[col] = df[col].astype(str).str.strip().str.upper()
                 df[col] = df[col].replace(["NAN", "NONE", "", "NAT"], "SIN ASIGNAR")
-        
+
         # Convertir cantidades y días a numérico
         cols_numericas = ["COLOMBIA QTY", "COLOMBIA PAQS", "PLAN PLANEACION", "DIAS FICHA - CREACION", "DIAS CREACION - ENVIO", "DIAS ENVIO - CONFIRMACION"]
         for col_num in cols_numericas:
             if col_num in df.columns:
                 df[col_num] = pd.to_numeric(df[col_num], errors="coerce").fillna(0)
-                
+
         return df, None
     except Exception as e:
         return None, f"Error cargando base: {e}"
@@ -137,7 +140,7 @@ if error:
     st.stop()
 
 if df is not None and not df.empty:
-    
+
     # --- CABECERA ESTILO LILI PINK ---
     st.markdown("""
         <div class="header-box">
@@ -148,10 +151,10 @@ if df is not None and not df.empty:
 
     # --- BARRA SUPERIOR DE FILTROS (Múltiple Selección) ---
     st.markdown("<div class='section-title'>🎛️ Filtros Globales de Control (Selección Múltiple)</div>", unsafe_allow_html=True)
-    
+
     f1, f2, f3 = st.columns(3)
     f4, f5, f6 = st.columns(3)
-    
+
     with f1:
         segmentos = sorted([str(x) for x in df["N. SEGMENTO"].unique() if str(x) != "SIN ASIGNAR"]) if "N. SEGMENTO" in df.columns else []
         segmento_sel = st.multiselect("Segmentos:", options=segmentos, placeholder="Todos los Segmentos")
@@ -162,7 +165,7 @@ if df is not None and not df.empty:
         perfiles = sorted([str(x) for x in df["N. PERFIL"].unique() if str(x) != "SIN ASIGNAR"]) if "N. PERFIL" in df.columns else []
         perfil_sel = st.multiselect("Perfiles / Clasificación:", options=perfiles, placeholder="Todos los Perfiles")
     with f4:
-        estados = sorted([str(x) for x in df["ESTADO FINAL COLOMBIA"].unique() if str(x) != "SIN ASIGNAR"]) if "ESTADO FINAL COLOMBIA" in df.columns else []
+        estados = sorted([str(x) for x in df["ESTATUS CHINA COLOMBIA"].unique() if str(x) != "SIN ASIGNAR"]) if "ESTATUS CHINA COLOMBIA" in df.columns else []
         estado_sel = st.multiselect("Estatus China:", options=estados, placeholder="Todos los Estatus")
     with f5:
         compras = sorted([str(x) for x in df["TIPO DE COMPRA"].unique() if str(x) != "SIN ASIGNAR"]) if "TIPO DE COMPRA" in df.columns else []
@@ -176,7 +179,7 @@ if df is not None and not df.empty:
     if segmento_sel: df_f = df_f[df_f["N. SEGMENTO"].isin(segmento_sel)]
     if ref_sel: df_f = df_f[df_f["REF"].isin(ref_sel)]
     if perfil_sel: df_f = df_f[df_f["N. PERFIL"].isin(perfil_sel)]
-    if estado_sel: df_f = df_f[df_f["ESTADO FINAL COLOMBIA"].isin(estado_sel)]
+    if estado_sel: df_f = df_f[df_f["ESTATUS CHINA COLOMBIA"].isin(estado_sel)]
     if compra_sel: df_f = df_f[df_f["TIPO DE COMPRA"].isin(compra_sel)]
     if plan_sel: df_f = df_f[df_f["PLAN"].isin(plan_sel)]
 
@@ -191,13 +194,13 @@ if df is not None and not df.empty:
     # ================= COLUMNA IZQUIERDA (Métricas, Estatus, Lead Times) =================
     with col_izquierda:
         st.markdown("<div class='section-title'>CELULAS TEXTIL</div>", unsafe_allow_html=True)
-        
+
         # Tarjetas Métricas
         k_col1, k_col2, k_col3 = st.columns(3)
         num_ordenes = df_f["ORDER"].nunique() if "ORDER" in df_f.columns else 0
         num_refs = df_f["REF"].nunique() if "REF" in df_f.columns else 0
         num_planes = df_f["PLAN"].nunique() if "PLAN" in df_f.columns else 0
-        
+
         with k_col1:
             st.markdown(f"""
                 <div class="kpi-card">
@@ -254,17 +257,17 @@ if df is not None and not df.empty:
         # Evacuación de Planes (Suma Solicitado / Planeado vs Paquetes reales)
         if "PLAN" in df_f.columns and "PLAN PLANEACION" in df_f.columns and "COLOMBIA PAQS" in df_f.columns:
             resumen_evac = df_f.groupby("PLAN")[["PLAN PLANEACION", "COLOMBIA PAQS"]].sum().reset_index()
-            
+
             # Cálculo de % Evacuación seguro
             resumen_evac["% EVACUACION"] = 100
             mask_planeacion = resumen_evac["PLAN PLANEACION"] > 0
             resumen_evac.loc[mask_planeacion, "% EVACUACION"] = (resumen_evac["COLOMBIA PAQS"] / resumen_evac["PLAN PLANEACION"] * 100).round(1)
-            
+
             # Formatear
             resumen_evac["% EVACUACION"] = resumen_evac["% EVACUACION"].astype(str) + " %"
             resumen_evac["PLAN PLANEACION"] = resumen_evac["PLAN PLANEACION"].map("{:,.0f}".format)
             resumen_evac["COLOMBIA PAQS"] = resumen_evac["COLOMBIA PAQS"].map("{:,.0f}".format)
-            
+
             st.dataframe(resumen_evac, width="stretch", hide_index=True)
         else:
             st.info("Columnas de planeación/paquetes no detectadas.")
@@ -273,13 +276,16 @@ if df is not None and not df.empty:
     st.markdown("<div class='section-title'>📋 MATRIZ DETALLADA Y EXPORTACIÓN</div>", unsafe_allow_html=True)
     columnas_vista = [
         "PLAN", "ORDER DETAIL", "REF", "TIPO DE PRODUCTO", "CATEGORIA",
-        "COLOMBIA QTY", "COLOMBIA PAQS", "ESTADO FINAL COLOMBIA", 
+        "COLOMBIA QTY", "COLOMBIA PAQS", "ESTATUS CHINA COLOMBIA",
         "ESTADO FINAL COLOMBIA"
     ]
+    # Se eliminan nombres duplicados que puedan haber quedado en la lista de vista
+    columnas_vista = list(dict.fromkeys(columnas_vista))
     cols_a_mostrar = [c for c in columnas_vista if c in df_f.columns]
+
     if cols_a_mostrar:
         st.dataframe(df_f[cols_a_mostrar], width="stretch", hide_index=True)
-        
+
         # Botón de Descarga
         csv_data = df_f[cols_a_mostrar].to_csv(index=False).encode('utf-8')
         st.download_button(
