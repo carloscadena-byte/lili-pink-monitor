@@ -132,9 +132,45 @@ def cargar_datos_locales_binarios(nombre_archivo):
 def render_tabla_centrada(df_data, mapeo_columnas, nombre_col_total=None):
   html = """
     <div style="overflow-x: auto; margin-bottom: 20px;">
-    <table style="width: 100%; border-collapse: collapse; text-align: center; font-family: sans-serif; font-size: 14px; background-color: white; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+    <table style="width: 100%; border-collapse: collapse; text-align: center; font-family: sans-serif; font-size: 14px; background-color: white; color: #212121; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
         <thead>
             <tr style="background-color: #d81b60; color: white;">
+    """
+  for _, col_disp in mapeo_columnas.items():
+    html += f'<th style="padding: 10px; text-align: center; font-weight: 600; color: white;">{col_disp}</th>'
+  html += """
+            </tr>
+        </thead>
+        <tbody>
+    """
+  for idx, row in df_data.iterrows():
+    es_total = (
+        nombre_col_total
+        and str(row[nombre_col_total]).strip().lower() == "total"
+    )
+    if es_total:
+      row_style = (
+          "background-color: #fce4ec; font-weight: bold; color: #d81b60; border-top: 2px solid #d81b60;"
+      )
+      text_color = "#d81b60" # Color fucsia para la fila de totales
+    else:
+      bg = "#ffffff" if idx % 2 == 0 else "#fdf7f9"
+      row_style = f"background-color: {bg}; border-bottom: 1px solid #f3e5f5;"
+      text_color = "#212121" # Color gris oscuro/negro para máxima lectura
+
+    html += f'<tr style="{row_style}">'
+    for col_orig in mapeo_columnas.keys():
+      val = row[col_orig]
+      html += f'<td style="padding: 8px; text-align: center; color: {text_color};">{val}</td>'
+    html += "</tr>"
+
+  html += """
+        </tbody>
+    </table>
+    </div>
+    """
+  return html
+
     """
   for _, col_disp in mapeo_columnas.items():
     html += f'<th style="padding: 10px; text-align: center; font-weight: 600;">{col_disp}</th>'
