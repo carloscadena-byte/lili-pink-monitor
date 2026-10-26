@@ -1,7 +1,6 @@
 import streamlit as st
 import pandas as pd
 import requests
-import re
 from io import BytesIO
 
 # Configuración visual de la aplicación para Móvil y Web (Ancho completo)
@@ -62,10 +61,11 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# 🔑 El ID real de tu archivo de Google Drive
+# 🔑 Tu ID real del archivo Excel (.xlsx) de Google Drive
 ID_GOOGLE_DRIVE = "1llhosnqf0zf7FB8bsXgHtNLzbOjio2ro"
+URL_DESCARGA = f"https://drive.google.com/uc?export=download&id={ID_GOOGLE_DRIVE}"
 
-# Columnas clave requeridas para los cálculos del dashboard
+# Columnas clave requeridas de tu pestaña "BASE"
 COLUMNAS_SELECCIONADAS = [
     "PLAN", "ORDER", "ORDER DETAIL", "REF", 
     "ESTATUS CHINA COLOMBIA", "ESTADO FINAL COLOMBIA",
@@ -74,41 +74,34 @@ COLUMNAS_SELECCIONADAS = [
     "N. SEGMENTO", "CATEGORIA", "TIPO DE PRODUCTO", "TIPO DE COMPRA", "N. PERFIL"
 ]
 
-@st.cache_data(ttl=300)
-def cargar_datos_desde_drive(file_id):
+@st.cache_data(ttl=300) # Caché de 5 minutos para cargas rápidas
+def cargar_datos_desde_drive_excel(url):
     try:
         session = requests.Session()
-        url_base = "https://docs.google.com/uc?export=download"
-        
-        # Primera solicitud para buscar si Google Drive pide confirmación de descarga por virus
-        respuesta = session.get(url_base, params={'id': file_id}, stream=True)
+        # Descarga con el bypass de virus para archivos grandes de Google Drive
+        respuesta = session.get(url, stream=True)
         
         token = None
-        # Método 1: Buscar token en cookies
         for key, value in respuesta.cookies.items():
             if key.startswith('download_warning'):
                 token = value
                 break
-                
-        # Método 2: Buscar token en el HTML de advertencia (si Google cambió las cookies)
-        if not token:
-            match = re.search(r'confirm=([a-zA-Z0-9_]+)', respuesta.text)
-            if match:
-                token = match.group(1)
-                
-        # Si se encontró un token de confirmación, hacemos la descarga final con el token
         if token:
-            respuesta = session.get(url_base, params={'id': file_id, 'confirm': token}, stream=True)
+            respuesta = session.get(url + f"&confirm={token}", stream=True)
             
         respuesta.raise_for_status()
         
-        # Lee la pestaña "BASE" usando el motor openpyxl (100% compatible con flujos en memoria)
+        # Leemos directamente el archivo Excel (.xlsx) usando openpyxl apuntando a "BASE"
+        # y empezando los encabezados desde la Fila 2 (header=1)
         df = pd.read_excel(BytesIO(respuesta.content), header=1, sheet_name="BASE", engine="openpyxl")
         
         # Normalizar nombres de columnas a mayúsculas
         df.columns = [str(c).strip().upper() for c in df.columns]
         
-        # Filtrar solo columnas existentes
+        # 🛡️ Eliminar columnas duplicadas automáticamente
+        df = df.loc[:, ~df.columns.duplicated()]
+        
+        # Filtrar solo columnas existentes de las seleccionadas
         cols_presentes = [c for c in COLUMNAS_SELECCIONADAS if c in df.columns]
         df = df[cols_presentes]
         
@@ -129,11 +122,12 @@ def cargar_datos_desde_drive(file_id):
         return None, f"Error cargando base: {e}"
 
 # --- CARGA CON SPINNER VISUAL ---
-with st.spinner("⏳ Descargando base de datos de 34 MB desde Google Drive..."):
-    df, error = cargar_datos_desde_drive(ID_GOOGLE_DRIVE)
+with st.spinner("⏳ Descargando base de datos Excel (.xlsx) desde Google Drive..."):
+    df, error = cargar_datos_desde_drive_excel(URL_DESCARGA)
 
 if error:
     st.error(f"⚠️ {error}")
+    st.info("💡 Asegúrate de que el archivo Excel esté compartido en Google Drive como 'Cualquier persona con el enlace'.")
     st.stop()
 
 if df is not None and not df.empty:
@@ -148,7 +142,6 @@ if df is not None and not df.empty:
 
     # --- BARRA SUPERIOR DE FILTROS (Múltiple Selección) ---
     st.markdown("<div class='section-title'>🎛️ Filtros Globales de Control (Selección Múltiple)</div>", unsafe_allow_html=True)
-    
     f1, f2, f3 = st.columns(3)
     f4, f5, f6 = st.columns(3)
     
@@ -235,7 +228,7 @@ if df is not None and not df.empty:
         st.markdown("<div class='section-title'>LEAD TIME BESTSELLER (LT)</div>", unsafe_allow_html=True)
         if "N. PERFIL" in df_f.columns and "TIPO DE PRODUCTO" in df_f.columns:
             resumen_lt = df_f.groupby(["N. PERFIL", "TIPO DE PRODUCTO"])["COLOMBIA PAQS"].sum().reset_index()
-            resumen_lt["LT (SEMANAS)"] = 6  # Ejemplo de Lead Time promedio
+            resumen_lt["LT (SEMANAS)"] = 6  # Lead Time promedio referencial
             resumen_lt["COLOMBIA PAQS"] = resumen_lt["COLOMBIA PAQS"].map("{:,.0f}".format)
             st.dataframe(resumen_lt, width="stretch", hide_index=True)
 
@@ -251,7 +244,7 @@ if df is not None and not df.empty:
             st.info("No hay columnas suficientes para calcular los tiempos promedio de ejecución.")
 
         st.markdown("<div class='section-title'>EVACUACION PLANES</div>", unsafe_allow_html=True)
-        # Evacuación de Planes (Suma Solicitado / Planeado vs Paquetes reales)
+        # Evacuación de Planes (Suma Solicitado vs Paquetes reales)
         if "PLAN" in df_f.columns and "PLAN PLANEACION" in df_f.columns and "COLOMBIA PAQS" in df_f.columns:
             resumen_evac = df_f.groupby("PLAN")[["PLAN PLANEACION", "COLOMBIA PAQS"]].sum().reset_index()
             
@@ -276,7 +269,9 @@ if df is not None and not df.empty:
         "COLOMBIA QTY", "COLOMBIA PAQS", "ESTATUS CHINA COLOMBIA", 
         "ESTADO FINAL COLOMBIA"
     ]
+    columnas_vista = list(dict.fromkeys(columnas_vista)) # Eliminar posibles duplicados
     cols_a_mostrar = [c for c in columnas_vista if c in df_f.columns]
+    
     if cols_a_mostrar:
         st.dataframe(df_f[cols_a_mostrar], width="stretch", hide_index=True)
         
