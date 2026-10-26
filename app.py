@@ -162,7 +162,7 @@ if df is not None and not df.empty:
         perfiles = sorted([str(x) for x in df["N. PERFIL"].unique() if str(x) != "SIN ASIGNAR"]) if "N. PERFIL" in df.columns else []
         perfil_sel = st.multiselect("Perfiles / Clasificación:", options=perfiles, placeholder="Todos los Perfiles")
     with f4:
-        estados = sorted([str(x) for x in df["ESTATUS CHINA COLOMBIA"].unique() if str(x) != "SIN ASIGNAR"]) if "ESTATUS CHINA COLOMBIA" in df.columns else []
+        estados = sorted([str(x) for x in df["ESTADO FINAL COLOMBIA"].unique() if str(x) != "SIN ASIGNAR"]) if "ESTADO FINAL COLOMBIA" in df.columns else []
         estado_sel = st.multiselect("Estatus China:", options=estados, placeholder="Todos los Estatus")
     with f5:
         compras = sorted([str(x) for x in df["TIPO DE COMPRA"].unique() if str(x) != "SIN ASIGNAR"]) if "TIPO DE COMPRA" in df.columns else []
@@ -176,7 +176,7 @@ if df is not None and not df.empty:
     if segmento_sel: df_f = df_f[df_f["N. SEGMENTO"].isin(segmento_sel)]
     if ref_sel: df_f = df_f[df_f["REF"].isin(ref_sel)]
     if perfil_sel: df_f = df_f[df_f["N. PERFIL"].isin(perfil_sel)]
-    if estado_sel: df_f = df_f[df_f["ESTATUS CHINA COLOMBIA"].isin(estado_sel)]
+    if estado_sel: df_f = df_f[df_f["ESTADO FINAL COLOMBIA"].isin(estado_sel)]
     if compra_sel: df_f = df_f[df_f["TIPO DE COMPRA"].isin(compra_sel)]
     if plan_sel: df_f = df_f[df_f["PLAN"].isin(plan_sel)]
 
@@ -273,7 +273,7 @@ if df is not None and not df.empty:
     st.markdown("<div class='section-title'>📋 MATRIZ DETALLADA Y EXPORTACIÓN</div>", unsafe_allow_html=True)
     columnas_vista = [
         "PLAN", "ORDER DETAIL", "REF", "TIPO DE PRODUCTO", "CATEGORIA",
-        "COLOMBIA QTY", "COLOMBIA PAQS", "ESTATUS CHINA COLOMBIA", 
+        "COLOMBIA QTY", "COLOMBIA PAQS", "ESTADO FINAL COLOMBIA", 
         "ESTADO FINAL COLOMBIA"
     ]
     cols_a_mostrar = [c for c in columnas_vista if c in df_f.columns]
