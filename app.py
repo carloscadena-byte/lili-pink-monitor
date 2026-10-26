@@ -90,8 +90,8 @@ def cargar_datos_desde_drive(url):
             
         respuesta.raise_for_status()
         
-        # Lee la pestaña "BASE" (Fila 2 como encabezado)
-        df = pd.read_excel(BytesIO(respuesta.content), header=1, sheet_name="BASE", engine="calamine")
+        # Lee la pestaña "BASE" usando el motor openpyxl que es 100% compatible con BytesIO
+        df = pd.read_excel(BytesIO(respuesta.content), header=1, sheet_name="BASE", engine="openpyxl")
         
         # Normalizar nombres de columnas a mayúsculas
         df.columns = [str(c).strip().upper() for c in df.columns]
@@ -276,4 +276,5 @@ if df is not None and not df.empty:
         )
 else:
     st.info("No se encontraron registros para mostrar.")
+
 
