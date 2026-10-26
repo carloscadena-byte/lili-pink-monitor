@@ -59,7 +59,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# 📂 Nombre exacto de tu archivo binario .xlsb en tu repositorio
+# 📂 Nombre exacto de tu nuevo archivo binario guardado en GitHub
 NOMBRE_ARCHIVO_EXCEL = "BD CHINA REAL INTERNACIONAL.xlsb"
 
 # Columnas clave requeridas de tu pestaña "BASE"
@@ -159,7 +159,7 @@ if df is not None and not df.empty:
         st.cache_data.clear()
         st.rerun()
 
-    # --- DISEÑO DEL CONTENIDO PRINCIPAL (Dividido en 2 Columnas) ---
+    # --- DISEÑO DEL CONTENIDO PRINCIPAL ---
     col_izquierda, col_derecha = st.columns([5, 7])
 
     # ================= COLUMNA IZQUIERDA (Métricas y Estatus) =================
@@ -234,12 +234,14 @@ if df is not None and not df.empty:
     cols_a_mostrar = [c for c in columnas_vista if c in df_f.columns]
     
     if cols_a_mostrar:
-        st.dataframe(df_f[cols_a_mostrar], width="stretch", hide_index=True)
+        # ⚡ EL TRUCO CLAVE: Mostramos solo las primeras 100 filas para que la web vuele al filtrar
+        st.markdown(f"⚠️ *Mostrando las primeras **100 filas** de un total de **{len(df_f):,}** registros filtrados. Descarga el reporte para ver el detalle completo.*")
+        st.dataframe(df_f[cols_a_mostrar].head(100), width="stretch", hide_index=True)
         
-        # Botón de Descarga
+        # Botón de Descarga (Este SÍ descarga el 100% de los datos filtrados de forma limpia)
         csv_data = df_f[cols_a_mostrar].to_csv(index=False).encode('utf-8')
         st.download_button(
-            label="📥 Descargar datos filtrados (CSV)",
+            label="📥 Descargar datos filtrados completos (CSV)",
             data=csv_data,
             file_name="reporte_sourcing_filtrado.csv",
             mime="text/csv"
