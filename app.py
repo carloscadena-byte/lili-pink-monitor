@@ -131,19 +131,19 @@ if df is not None and not df.empty:
         segmento_sel = st.multiselect("Segmentos:", options=segmentos, placeholder="Todos los Segmentos")
     with f2:
         referencias = sorted([str(x) for x in df["REF"].unique() if str(x) != "SIN ASIGNAR"]) if "REF" in df.columns else []
-        ref_sel = st.multiselect("Referencias:", options=referencias, placeholder="Todas las Referencias")
+        ref_sel = st.multiselect("Referencia:", options=referencias, placeholder="Todas las Referencias")
     with f3:
         perfiles = sorted([str(x) for x in df["N. PERFIL"].unique() if str(x) != "SIN ASIGNAR"]) if "N. PERFIL" in df.columns else []
-        perfil_sel = st.multiselect("Perfiles / Clasificación:", options=perfiles, placeholder="Todos los Perfiles")
+        perfil_sel = st.multiselect("Perfil", options=perfiles, placeholder="Todos los Perfiles")
     with f4:
         estados = sorted([str(x) for x in df["ESTADO FINAL COLOMBIA"].unique() if str(x) != "SIN ASIGNAR"]) if "ESTADO FINAL COLOMBIA" in df.columns else []
-        estado_sel = st.multiselect("Estado Final Colombia:", options=estados, placeholder="Todos los Estados")
+        estado_sel = st.multiselect("Estado:", options=estados, placeholder="Todos los Estados")
     with f5:
         compras = sorted([str(x) for x in df["TIPO DE COMPRA"].unique() if str(x) != "SIN ASIGNAR"]) if "TIPO DE COMPRA" in df.columns else []
-        compra_sel = st.multiselect("Tipos de Compra:", options=compras, placeholder="Todos los Tipos")
+        compra_sel = st.multiselect("Tipo de Compra:", options=compras, placeholder="Todos los Tipos")
     with f6:
         planes = sorted([str(x) for x in df["PLAN"].unique() if str(x) != "SIN ASIGNAR"]) if "PLAN" in df.columns else []
-        plan_sel = st.multiselect("Planes / O.P.:", options=planes, placeholder="Todos los Planes")
+        plan_sel = st.multiselect("Plan:", options=planes, placeholder="Todos los Planes")
 
     # Aplicar Filtros Dinámicos (Soporta múltiples selecciones simultáneas)
     df_f = df.copy()
