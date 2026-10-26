@@ -87,12 +87,12 @@ def cargar_datos_locales_binarios(nombre_archivo):
         
         # Forzar conversión a texto para evitar errores en las tablas
         for col in df.columns:
-            if col not in ["COLOMBIA PAQS", "COLOMBIA PAQS"]:
+            if col not in ["COLOMBIA QTYS", "COLOMBIA PAQS"]:
                 df[col] = df[col].astype(str).str.strip().str.upper()
                 df[col] = df[col].replace(["NAN", "NONE", "", "NAT"], "SIN ASIGNAR")
         
         # Convertir cantidades a numérico
-        cols_numericas = ["COLOMBIA PAQS", "COLOMBIA PAQS"]
+        cols_numericas = ["COLOMBIA QTYS", "COLOMBIA PAQS"]
         for col_num in cols_numericas:
             if col_num in df.columns:
                 df[col_num] = pd.to_numeric(df[col_num], errors="coerce").fillna(0)
