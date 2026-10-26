@@ -85,17 +85,20 @@ def cargar_datos_locales_binarios(nombre_archivo):
         cols_presentes = [c for c in COLUMNAS_SELECCIONADAS if c in df.columns]
         df = df[cols_presentes]
         
-        # Forzar conversión a texto para evitar errores en las tablas
+                # Forzar conversión a texto para evitar errores en las tablas
         for col in df.columns:
-            if col not in ["COLOMBIA QTYS", "COLOMBIA PAQS"]:
+            if col not in ["COLOMBIA QTY", "COLOMBIA PAQS"]:  # <--- Corregido aquí
                 df[col] = df[col].astype(str).str.strip().str.upper()
                 df[col] = df[col].replace(["NAN", "NONE", "", "NAT"], "SIN ASIGNAR")
         
-        # Convertir cantidades a numérico
-        cols_numericas = ["COLOMBIA QTYS", "COLOMBIA PAQS"]
+                # Convertir cantidades a numérico
+        cols_numericas = ["COLOMBIA QTY", "COLOMBIA PAQS"]  # <--- Corregido aquí
         for col_num in cols_numericas:
             if col_num in df.columns:
-                df[col_num] = pd.to_numeric(df[col_num], errors="coerce").fillna(0)
+                datos_columna = df[col_num]
+                if isinstance(datos_columna, pd.DataFrame):
+                    datos_columna = datos_columna.iloc[:, 0]
+                df[col_num] = pd.to_numeric(datos_columna, errors="coerce").fillna(0)
                 
         return df, None
     except FileNotFoundError:
