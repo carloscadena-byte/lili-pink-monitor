@@ -128,7 +128,7 @@ if df is not None and not df.empty:
     
     with f1:
         segmentos = sorted([str(x) for x in df["N. SEGMENTO"].unique() if str(x) != "SIN ASIGNAR"]) if "N. SEGMENTO" in df.columns else []
-        segmento_sel = st.multiselect("Segmentos:", options=segmentos, placeholder="Todos los Segmentos")
+        segmento_sel = st.multiselect("Segmento:", options=segmentos, placeholder="Todos los Segmentos")
     with f2:
         referencias = sorted([str(x) for x in df["REF"].unique() if str(x) != "SIN ASIGNAR"]) if "REF" in df.columns else []
         ref_sel = st.multiselect("Referencia:", options=referencias, placeholder="Todas las Referencias")
