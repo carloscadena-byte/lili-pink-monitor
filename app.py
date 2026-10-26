@@ -82,11 +82,19 @@ def cargar_datos_desde_drive_csv(url):
         respuesta = session.get(url)
         respuesta.raise_for_status()
         
-        # 🛡️ LIMPIEZA DINÁMICA DE FILAS INICIALES EN BLANCO
-        lineas = respuesta.text.splitlines()
+        texto_recibido = respuesta.text
+        
+        # 🛡️ PROTECCIÓN 1: DETECTAR SI LO QUE DESCARGÓ ES UNA PÁGINA HTML DE ERROR DE GOOGLE
+        if "<html" in texto_recibido.lower() or "<!doctype html" in texto_recibido.lower():
+            return None, "Google Drive devolvió una página web en vez del archivo de datos. Por favor, asegúrate de que el archivo 'BASE.csv' esté compartido en Google Drive como 'Cualquier persona con el enlace puede ver'."
+
+        lineas = texto_recibido.splitlines()
+        
+        # 🛡️ PROTECCIÓN 2: BUSCAR DINÁMICAMENTE LA FILA QUE CONTIENE LA CABECERA "PLAN"
         primer_indice_valido = 0
         for i, linea in enumerate(lineas):
-            if linea.strip(): # Encontró la primera fila con datos reales (encabezados)
+            # Buscamos la fila de encabezados real que tenga la palabra clave "PLAN"
+            if "PLAN" in linea.upper():
                 primer_indice_valido = i
                 break
                 
@@ -135,7 +143,6 @@ with st.spinner("⏳ Descargando base de datos optimizada en CSV desde Google Dr
 
 if error:
     st.error(f"⚠️ {error}")
-    st.info("💡 Asegúrate de que el archivo CSV esté compartido en Google Drive como 'Cualquier persona con el enlace'.")
     st.stop()
 
 if df is not None and not df.empty:
@@ -293,3 +300,4 @@ if df is not None and not df.empty:
         )
 else:
     st.info("No se encontraron registros para mostrar.")
+
