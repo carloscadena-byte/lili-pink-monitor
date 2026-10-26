@@ -139,22 +139,23 @@ if df is not None and not df.empty:
     f1, f2, f3, f4, f5, f6 = st.columns(6)
     
     with f1:
-        segmentos = sorted(list(df["N. SEGMENTO"].unique())) if "N. SEGMENTO" in df.columns else ["TODOS"]
+        # Se asegura de convertir cada valor a string antes de ordenar para evitar TypeErrors
+        segmentos = sorted([str(x) for x in df["N. SEGMENTO"].unique() if str(x) != "SIN ASIGNAR"]) if "N. SEGMENTO" in df.columns else []
         segmento_sel = st.selectbox("Segmento:", ["TODOS"] + segmentos)
     with f2:
-        referencias = sorted(list(df["REF"].unique())) if "REF" in df.columns else ["TODAS"]
+        referencias = sorted([str(x) for x in df["REF"].unique() if str(x) != "SIN ASIGNAR"]) if "REF" in df.columns else []
         ref_sel = st.selectbox("Referencia:", ["TODAS"] + referencias)
     with f3:
-        perfiles = sorted(list(df["N. PERFIL"].unique())) if "N. PERFIL" in df.columns else ["TODAS"]
+        perfiles = sorted([str(x) for x in df["N. PERFIL"].unique() if str(x) != "SIN ASIGNAR"]) if "N. PERFIL" in df.columns else []
         perfil_sel = st.selectbox("Perfil / Clasificación:", ["TODAS"] + perfiles)
     with f4:
-        estados = sorted(list(df["ESTATUS CHINA COLOMBIA"].unique())) if "ESTATUS CHINA COLOMBIA" in df.columns else ["TODOS"]
+        estados = sorted([str(x) for x in df["ESTATUS CHINA COLOMBIA"].unique() if str(x) != "SIN ASIGNAR"]) if "ESTATUS CHINA COLOMBIA" in df.columns else []
         estado_sel = st.selectbox("Estatus China:", ["TODOS"] + estados)
     with f5:
-        compras = sorted(list(df["TIPO DE COMPRA"].unique())) if "TIPO DE COMPRA" in df.columns else ["TODOS"]
+        compras = sorted([str(x) for x in df["TIPO DE COMPRA"].unique() if str(x) != "SIN ASIGNAR"]) if "TIPO DE COMPRA" in df.columns else []
         compra_sel = st.selectbox("Tipo de Compra:", ["TODOS"] + compras)
     with f6:
-        planes = sorted(list(df["PLAN"].unique())) if "PLAN" in df.columns else ["TODOS"]
+        planes = sorted([str(x) for x in df["PLAN"].unique() if str(x) != "SIN ASIGNAR"]) if "PLAN" in df.columns else []
         plan_sel = st.selectbox("Plan / O.P.:", ["TODOS"] + planes)
 
     # Aplicar Filtros Dinámicos
@@ -211,7 +212,7 @@ if df is not None and not df.empty:
         if "ESTADO FINAL COLOMBIA" in df_f.columns and "COLOMBIA PAQS" in df_f.columns:
             resumen_status = df_f.groupby("ESTADO FINAL COLOMBIA")["COLOMBIA PAQS"].sum().reset_index()
             total_paqs = resumen_status["COLOMBIA PAQS"].sum()
-            resumen_status["%"] = (resumen_status["COLOMBIA PAQS"] / total_paqs * 100).round(1).astype(str) + " %"
+            resumen_status["%"] = (resumen_status["COLOMBIA PAQS"] / (total_paqs if total_paqs > 0 else 1) * 100).round(1).astype(str) + " %"
             resumen_status["COLOMBIA PAQS"] = resumen_status["COLOMBIA PAQS"].map("{:,.0f}".format)
             st.dataframe(resumen_status, width="stretch", hide_index=True)
         else:
@@ -221,7 +222,7 @@ if df is not None and not df.empty:
         st.markdown("<div class='section-title'>LEAD TIME BESTSELLER (LT)</div>", unsafe_allow_html=True)
         if "N. PERFIL" in df_f.columns and "TIPO DE PRODUCTO" in df_f.columns:
             resumen_lt = df_f.groupby(["N. PERFIL", "TIPO DE PRODUCTO"])["COLOMBIA PAQS"].sum().reset_index()
-            resumen_lt["LT (SEMANAS)"] = 6  # Ejemplo fijo o promedio si tienes la columna de Lead Time real
+            resumen_lt["LT (SEMANAS)"] = 6  # Ejemplo de Lead Time promedio
             resumen_lt["COLOMBIA PAQS"] = resumen_lt["COLOMBIA PAQS"].map("{:,.0f}".format)
             st.dataframe(resumen_lt, width="stretch", hide_index=True)
 
@@ -276,5 +277,3 @@ if df is not None and not df.empty:
         )
 else:
     st.info("No se encontraron registros para mostrar.")
-
-
