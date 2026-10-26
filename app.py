@@ -82,16 +82,26 @@ def cargar_datos_desde_drive_csv(url):
         respuesta = session.get(url)
         respuesta.raise_for_status()
         
+        # 🛡️ LIMPIEZA DINÁMICA DE FILAS INICIALES EN BLANCO
+        lineas = respuesta.text.splitlines()
+        primer_indice_valido = 0
+        for i, linea in enumerate(lineas):
+            if linea.strip(): # Encontró la primera fila con datos reales (encabezados)
+                primer_indice_valido = i
+                break
+                
+        texto_limpio = "\n".join(lineas[primer_indice_valido:])
+        
         # 🛡️ ALGORITMO DE DOBLE INTENTO SEGURO DE SEPARADOR
         try:
             # Intento 1: Leer con punto y coma (Estándar de Excel en español)
-            df = pd.read_csv(StringIO(respuesta.text), skiprows=1, sep=";")
+            df = pd.read_csv(StringIO(texto_limpio), sep=";")
             # Si solo detectó 1 columna, significa que el separador real era una coma
             if len(df.columns) <= 1:
-                df = pd.read_csv(StringIO(respuesta.text), skiprows=1, sep=",")
+                df = pd.read_csv(StringIO(texto_limpio), sep=",")
         except Exception:
             # Intento 2 (Fallback): Leer con coma tradicional
-            df = pd.read_csv(StringIO(respuesta.text), skiprows=1, sep=",")
+            df = pd.read_csv(StringIO(texto_limpio), sep=",")
         
         # Normalizar nombres de columnas a mayúsculas
         df.columns = [str(c).strip().upper() for c in df.columns]
