@@ -90,7 +90,7 @@ def cargar_datos_desde_drive(url):
             
         respuesta.raise_for_status()
         
-        # Lee la pestaña "BASE" usando el motor openpyxl que es 100% compatible con BytesIO
+        # Lee la pestaña "BASE" usando el motor openpyxl (100% compatible con BytesIO)
         df = pd.read_excel(BytesIO(respuesta.content), header=1, sheet_name="BASE", engine="openpyxl")
         
         # Normalizar nombres de columnas a mayúsculas
@@ -134,38 +134,38 @@ if df is not None and not df.empty:
         </div>
     """, unsafe_allow_html=True)
 
-    # --- BARRA SUPERIOR DE FILTROS (En 6 columnas para fácil acceso) ---
-    st.markdown("<div class='section-title'>🎛️ Filtros Globales de Control</div>", unsafe_allow_html=True)
-    f1, f2, f3, f4, f5, f6 = st.columns(6)
+    # --- BARRA SUPERIOR DE FILTROS (Múltiple Selección) ---
+    st.markdown("<div class='section-title'>🎛️ Filtros Globales de Control (Selección Múltiple)</div>", unsafe_allow_html=True)
+    f1, f2, f3 = st.columns(3)
+    f4, f5, f6 = st.columns(3)
     
     with f1:
-        # Se asegura de convertir cada valor a string antes de ordenar para evitar TypeErrors
         segmentos = sorted([str(x) for x in df["N. SEGMENTO"].unique() if str(x) != "SIN ASIGNAR"]) if "N. SEGMENTO" in df.columns else []
-        segmento_sel = st.selectbox("Segmento:", ["TODOS"] + segmentos)
+        segmento_sel = st.multiselect("Segmentos:", options=segmentos, placeholder="Todos los Segmentos")
     with f2:
         referencias = sorted([str(x) for x in df["REF"].unique() if str(x) != "SIN ASIGNAR"]) if "REF" in df.columns else []
-        ref_sel = st.selectbox("Referencia:", ["TODAS"] + referencias)
+        ref_sel = st.multiselect("Referencias:", options=referencias, placeholder="Todas las Referencias")
     with f3:
         perfiles = sorted([str(x) for x in df["N. PERFIL"].unique() if str(x) != "SIN ASIGNAR"]) if "N. PERFIL" in df.columns else []
-        perfil_sel = st.selectbox("Perfil / Clasificación:", ["TODAS"] + perfiles)
+        perfil_sel = st.multiselect("Perfiles / Clasificación:", options=perfiles, placeholder="Todos los Perfiles")
     with f4:
         estados = sorted([str(x) for x in df["ESTATUS CHINA COLOMBIA"].unique() if str(x) != "SIN ASIGNAR"]) if "ESTATUS CHINA COLOMBIA" in df.columns else []
-        estado_sel = st.selectbox("Estatus China:", ["TODOS"] + estados)
+        estado_sel = st.multiselect("Estatus China:", options=estados, placeholder="Todos los Estatus")
     with f5:
         compras = sorted([str(x) for x in df["TIPO DE COMPRA"].unique() if str(x) != "SIN ASIGNAR"]) if "TIPO DE COMPRA" in df.columns else []
-        compra_sel = st.selectbox("Tipo de Compra:", ["TODOS"] + compras)
+        compra_sel = st.multiselect("Tipos de Compra:", options=compras, placeholder="Todos los Tipos")
     with f6:
         planes = sorted([str(x) for x in df["PLAN"].unique() if str(x) != "SIN ASIGNAR"]) if "PLAN" in df.columns else []
-        plan_sel = st.selectbox("Plan / O.P.:", ["TODOS"] + planes)
+        plan_sel = st.multiselect("Planes / O.P.:", options=planes, placeholder="Todos los Planes")
 
-    # Aplicar Filtros Dinámicos
+    # Aplicar Filtros Dinámicos (Soporta múltiples selecciones simultáneas)
     df_f = df.copy()
-    if segmento_sel != "TODOS": df_f = df_f[df_f["N. SEGMENTO"] == segmento_sel]
-    if ref_sel != "TODAS": df_f = df_f[df_f["REF"] == ref_sel]
-    if perfil_sel != "TODAS": df_f = df_f[df_f["N. PERFIL"] == perfil_sel]
-    if estado_sel != "TODOS": df_f = df_f[df_f["ESTATUS CHINA COLOMBIA"] == estado_sel]
-    if compra_sel != "TODOS": df_f = df_f[df_f["TIPO DE COMPRA"] == compra_sel]
-    if plan_sel != "TODOS": df_f = df_f[df_f["PLAN"] == plan_sel]
+    if segmento_sel: df_f = df_f[df_f["N. SEGMENTO"].isin(segmento_sel)]
+    if ref_sel: df_f = df_f[df_f["REF"].isin(ref_sel)]
+    if perfil_sel: df_f = df_f[df_f["N. PERFIL"].isin(perfil_sel)]
+    if estado_sel: df_f = df_f[df_f["ESTATUS CHINA COLOMBIA"].isin(estado_sel)]
+    if compra_sel: df_f = df_f[df_f["TIPO DE COMPRA"].isin(compra_sel)]
+    if plan_sel: df_f = df_f[df_f["PLAN"].isin(plan_sel)]
 
     # --- BOTÓN DE REFRESCAR EN LA BARRA LATERAL ---
     if st.sidebar.button("🔄 Sincronizar Google Drive"):
