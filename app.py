@@ -42,7 +42,7 @@ def cargar_datos_desde_drive(url):
         respuesta.raise_for_status()
         
         # Lee el archivo en memoria apuntando a tu pestaña del Excel y tu encabezado en la Fila 2
-        df = pd.read_excel(BytesIO(respuesta.content), header=1, sheet_name="BASE", engine="openpyxl")
+        df = pd.read_excel(BytesIO(respuesta.content), header=1, sheet_name="BASE", engine="calamine")
         
         # Normalizar nombres de columnas a mayúsculas
         df.columns = [str(c).strip().upper() for c in df.columns]
