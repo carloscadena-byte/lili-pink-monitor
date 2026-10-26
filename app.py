@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import requests
+import re
 from io import StringIO
 
 # Configuración visual de la aplicación para Móvil y Web (Ancho completo)
@@ -62,8 +63,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # 🔑 El ID de tu NUEVO archivo BASE.csv en Google Drive
-# (Si subiste el CSV como un archivo nuevo, asegúrate de reemplazar este ID por el del CSV)
-ID_GOOGLE_DRIVE = "10F_paMB2S0EgW0hiVJUOCIvzNiwi2JXK" 
+ID_GOOGLE_DRIVE = "1llhosnqf0zf7FB8bsXgHtNLzbOjio2ro"
 URL_DESCARGA = f"https://drive.google.com/uc?export=download&id={ID_GOOGLE_DRIVE}"
 
 # Columnas clave requeridas para los cálculos del dashboard
@@ -82,11 +82,8 @@ def cargar_datos_desde_drive_csv(url):
         respuesta = session.get(url)
         respuesta.raise_for_status()
         
-        # Al descargar un CSV de Google Drive, no hay advertencias de virus por tamaño,
-        # por lo que podemos leer el texto directamente de forma segura.
-        # El parámetro 'skiprows=1' salta la primera fila en blanco si tu estructura de datos empieza en la Fila 2.
-        # Si tu CSV exportado inicia directamente con los encabezados en la Fila 1, puedes quitar 'skiprows=1'.
-        df = pd.read_csv(StringIO(respuesta.text), skiprows=1)
+        # 'sep=None' y 'engine="python"' detectan automáticamente si es coma (,) o punto y coma (;)
+        df = pd.read_csv(StringIO(respuesta.text), skiprows=1, sep=None, engine="python")
         
         # Normalizar nombres de columnas a mayúsculas
         df.columns = [str(c).strip().upper() for c in df.columns]
@@ -221,7 +218,7 @@ if df is not None and not df.empty:
         st.markdown("<div class='section-title'>LEAD TIME BESTSELLER (LT)</div>", unsafe_allow_html=True)
         if "N. PERFIL" in df_f.columns and "TIPO DE PRODUCTO" in df_f.columns:
             resumen_lt = df_f.groupby(["N. PERFIL", "TIPO DE PRODUCTO"])["COLOMBIA PAQS"].sum().reset_index()
-            resumen_lt["LT (SEMANAS)"] = 6  # Lead Time promedio referencial
+            resumen_lt["LT (SEMANAS)"] = 6  # Ejemplo de Lead Time promedio
             resumen_lt["COLOMBIA PAQS"] = resumen_lt["COLOMBIA PAQS"].map("{:,.0f}".format)
             st.dataframe(resumen_lt, width="stretch", hide_index=True)
 
@@ -278,4 +275,3 @@ if df is not None and not df.empty:
         )
 else:
     st.info("No se encontraron registros para mostrar.")
-
