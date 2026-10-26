@@ -3,7 +3,7 @@ import pandas as pd
 
 # Configuración visual de la aplicación para Móvil y Web (Ancho completo)
 st.set_page_config(
-    page_title="Dashboard Sourcing & Producción | Lili Pink & Yoi",
+    page_title="Monitor Sourcing | Lili Pink & Yoi",
     layout="wide",
     page_icon="🛍️"
 )
@@ -59,23 +59,20 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# 📂 Nombre exacto de tu nuevo archivo binario guardado en GitHub
+# 📂 Nombre exacto de tu archivo binario .xlsb en tu repositorio
 NOMBRE_ARCHIVO_EXCEL = "BD CHINA REAL INTERNACIONAL.xlsb"
 
 # Columnas clave requeridas de tu pestaña "BASE"
 COLUMNAS_SELECCIONADAS = [
     "PLAN", "ORDER", "ORDER DETAIL", "REF", 
-    "ESTATUS CHINA COLOMBIA", "ESTADO FINAL COLOMBIA",
-    "COLOMBIA QTY", "COLOMBIA PAQS", "PLAN PLANEACION",
-    "DIAS FICHA - CREACION", "DIAS CREACION - ENVIO", "DIAS ENVIO - CONFIRMACION",
+    "ESTADO FINAL COLOMBIA", "COLOMBIA QTY", "COLOMBIA PAQS",
     "N. SEGMENTO", "CATEGORIA", "TIPO DE PRODUCTO", "TIPO DE COMPRA", "N. PERFIL"
 ]
 
-@st.cache_data(ttl=3600) # Caché de 1 hora
+@st.cache_data(ttl=3600) # Caché de 1 hora para archivos locales
 def cargar_datos_locales_binarios(nombre_archivo):
     try:
-        # Lee el archivo binario (.xlsb) usando el motor pyxlsb para máxima velocidad
-        # Apunta a la pestaña "BASE" y toma los encabezados de la fila 2 (header=1)
+        # Lee el archivo binario (.xlsb) usando el motor pyxlsb
         df = pd.read_excel(nombre_archivo, header=1, sheet_name="BASE", engine="pyxlsb")
         
         # Normalizar nombres de columnas a mayúsculas
@@ -90,12 +87,12 @@ def cargar_datos_locales_binarios(nombre_archivo):
         
         # Forzar conversión a texto para evitar errores en las tablas
         for col in df.columns:
-            if col not in ["COLOMBIA QTY", "COLOMBIA PAQS", "PLAN PLANEACION", "DIAS FICHA - CREACION", "DIAS CREACION - ENVIO", "DIAS ENVIO - CONFIRMACION"]:
+            if col not in ["COLOMBIA QTY", "COLOMBIA PAQS"]:
                 df[col] = df[col].astype(str).str.strip().str.upper()
                 df[col] = df[col].replace(["NAN", "NONE", "", "NAT"], "SIN ASIGNAR")
         
-        # Convertir cantidades y días a numérico
-        cols_numericas = ["COLOMBIA QTY", "COLOMBIA PAQS", "PLAN PLANEACION", "DIAS FICHA - CREACION", "DIAS CREACION - ENVIO", "DIAS ENVIO - CONFIRMACION"]
+        # Convertir cantidades a numérico
+        cols_numericas = ["COLOMBIA QTY", "COLOMBIA PAQS"]
         for col_num in cols_numericas:
             if col_num in df.columns:
                 df[col_num] = pd.to_numeric(df[col_num], errors="coerce").fillna(0)
@@ -124,7 +121,7 @@ if df is not None and not df.empty:
         </div>
     """, unsafe_allow_html=True)
 
-    # --- BARRA SUPERIOR DE FILTROS (Múltiple Selección) ---
+    # --- BARRA SUPERIOR DE FILTROS ---
     st.markdown("<div class='section-title'>🎛️ Filtros Globales de Control (Selección Múltiple)</div>", unsafe_allow_html=True)
     f1, f2, f3 = st.columns(3)
     f4, f5, f6 = st.columns(3)
@@ -139,8 +136,8 @@ if df is not None and not df.empty:
         perfiles = sorted([str(x) for x in df["N. PERFIL"].unique() if str(x) != "SIN ASIGNAR"]) if "N. PERFIL" in df.columns else []
         perfil_sel = st.multiselect("Perfiles / Clasificación:", options=perfiles, placeholder="Todos los Perfiles")
     with f4:
-        estados = sorted([str(x) for x in df["ESTATUS CHINA COLOMBIA"].unique() if str(x) != "SIN ASIGNAR"]) if "ESTATUS CHINA COLOMBIA" in df.columns else []
-        estado_sel = st.multiselect("Estatus China:", options=estados, placeholder="Todos los Estatus")
+        estados = sorted([str(x) for x in df["ESTADO FINAL COLOMBIA"].unique() if str(x) != "SIN ASIGNAR"]) if "ESTADO FINAL COLOMBIA" in df.columns else []
+        estado_sel = st.multiselect("Estado Final Colombia:", options=estados, placeholder="Todos los Estados")
     with f5:
         compras = sorted([str(x) for x in df["TIPO DE COMPRA"].unique() if str(x) != "SIN ASIGNAR"]) if "TIPO DE COMPRA" in df.columns else []
         compra_sel = st.multiselect("Tipos de Compra:", options=compras, placeholder="Todos los Tipos")
@@ -153,7 +150,7 @@ if df is not None and not df.empty:
     if segmento_sel: df_f = df_f[df_f["N. SEGMENTO"].isin(segmento_sel)]
     if ref_sel: df_f = df_f[df_f["REF"].isin(ref_sel)]
     if perfil_sel: df_f = df_f[df_f["N. PERFIL"].isin(perfil_sel)]
-    if estado_sel: df_f = df_f[df_f["ESTATUS CHINA COLOMBIA"].isin(estado_sel)]
+    if estado_sel: df_f = df_f[df_f["ESTADO FINAL COLOMBIA"].isin(estado_sel)]
     if compra_sel: df_f = df_f[df_f["TIPO DE COMPRA"].isin(compra_sel)]
     if plan_sel: df_f = df_f[df_f["PLAN"].isin(plan_sel)]
 
@@ -162,10 +159,10 @@ if df is not None and not df.empty:
         st.cache_data.clear()
         st.rerun()
 
-    # --- DISEÑO DEL CONTENIDO PRINCIPAL (Dividido en 2 Columnas Grandes) ---
+    # --- DISEÑO DEL CONTENIDO PRINCIPAL (Dividido en 2 Columnas) ---
     col_izquierda, col_derecha = st.columns([5, 7])
 
-    # ================= COLUMNA IZQUIERDA (Métricas, Estatus, Lead Times) =================
+    # ================= COLUMNA IZQUIERDA (Métricas y Estatus) =================
     with col_izquierda:
         st.markdown("<div class='section-title'>CELULAS TEXTIL</div>", unsafe_allow_html=True)
         
@@ -197,61 +194,41 @@ if df is not None and not df.empty:
                 </div>
             """, unsafe_allow_html=True)
 
-        # Tabla de Estatus
+        # Tabla y Resumen de Estatus
         st.markdown("<div class='section-title'>ESTATUS COLOMBIA</div>", unsafe_allow_html=True)
         if "ESTADO FINAL COLOMBIA" in df_f.columns and "COLOMBIA PAQS" in df_f.columns:
             resumen_status = df_f.groupby("ESTADO FINAL COLOMBIA")["COLOMBIA PAQS"].sum().reset_index()
             total_paqs = resumen_status["COLOMBIA PAQS"].sum()
             resumen_status["%"] = (resumen_status["COLOMBIA PAQS"] / (total_paqs if total_paqs > 0 else 1) * 100).round(1).astype(str) + " %"
+            
+            # Gráfico de barras de Estatus
+            st.bar_chart(resumen_status.set_index("ESTADO FINAL COLOMBIA")["COLOMBIA PAQS"])
+            
+            # Tabla de datos
             resumen_status["COLOMBIA PAQS"] = resumen_status["COLOMBIA PAQS"].map("{:,.0f}".format)
             st.dataframe(resumen_status, width="stretch", hide_index=True)
         else:
             st.info("No se detectaron las columnas de Estatus o Paquetes.")
 
-        # Lead Time por Perfil y Tipo de Producto
-        st.markdown("<div class='section-title'>LEAD TIME BESTSELLER (LT)</div>", unsafe_allow_html=True)
-        if "N. PERFIL" in df_f.columns and "TIPO DE PRODUCTO" in df_f.columns:
-            resumen_lt = df_f.groupby(["N. PERFIL", "TIPO DE PRODUCTO"])["COLOMBIA PAQS"].sum().reset_index()
-            resumen_lt["LT (SEMANAS)"] = 6  # Lead Time promedio referencial
-            resumen_lt["COLOMBIA PAQS"] = resumen_lt["COLOMBIA PAQS"].map("{:,.0f}".format)
-            st.dataframe(resumen_lt, width="stretch", hide_index=True)
-
-    # ================= COLUMNA DERECHA (Tiempos de Ejecución y Evacuación de Planes) =================
+    # ================= COLUMNA DERECHA (Gráficos y Métricas de Producto) =================
     with col_derecha:
-        st.markdown("<div class='section-title'>TIEMPO PROMEDIO EJECUCION</div>", unsafe_allow_html=True)
-        # Tiempos Promedio por Plan
-        columnas_dias = [c for c in ["DIAS FICHA - CREACION", "DIAS CREACION - ENVIO", "DIAS ENVIO - CONFIRMACION"] if c in df_f.columns]
-        if "PLAN" in df_f.columns and columnas_dias:
-            resumen_tiempos = df_f.groupby("PLAN")[columnas_dias].mean().round(1).reset_index()
-            st.dataframe(resumen_tiempos, width="stretch", hide_index=True)
-        else:
-            st.info("No hay columnas suficientes para calcular los tiempos promedio de ejecución.")
-
-        st.markdown("<div class='section-title'>EVACUACION PLANES</div>", unsafe_allow_html=True)
-        # Evacuación de Planes (Suma Solicitado vs Paquetes reales)
-        if "PLAN" in df_f.columns and "PLAN PLANEACION" in df_f.columns and "COLOMBIA PAQS" in df_f.columns:
-            resumen_evac = df_f.groupby("PLAN")[["PLAN PLANEACION", "COLOMBIA PAQS"]].sum().reset_index()
+        st.markdown("<div class='section-title'>ANÁLISIS DE CATEGORÍA Y PRODUCTO</div>", unsafe_allow_html=True)
+        
+        if 'TIPO DE PRODUCTO' in df_f.columns and 'COLOMBIA QTY' in df_f.columns:
+            st.subheader("🧵 Cantidad de Unidades (QTY) por Tipo de Producto")
+            qty_producto = df_f.groupby("TIPO DE PRODUCTO")["COLOMBIA QTY"].sum().sort_values(ascending=False)
+            st.bar_chart(qty_producto)
             
-            # Cálculo de % Evacuación seguro
-            resumen_evac["% EVACUACION"] = 100
-            mask_planeacion = resumen_evac["PLAN PLANEACION"] > 0
-            resumen_evac.loc[mask_planeacion, "% EVACUACION"] = (resumen_evac["COLOMBIA PAQS"] / resumen_evac["PLAN PLANEACION"] * 100).round(1)
-            
-            # Formatear
-            resumen_evac["% EVACUACION"] = resumen_evac["% EVACUACION"].astype(str) + " %"
-            resumen_evac["PLAN PLANEACION"] = resumen_evac["PLAN PLANEACION"].map("{:,.0f}".format)
-            resumen_evac["COLOMBIA PAQS"] = resumen_evac["COLOMBIA PAQS"].map("{:,.0f}".format)
-            
-            st.dataframe(resumen_evac, width="stretch", hide_index=True)
-        else:
-            st.info("Columnas de planeación/paquetes no detectadas.")
+        if 'CATEGORIA' in df_f.columns and 'COLOMBIA QTY' in df_f.columns:
+            st.subheader("📁 Volumen por Categoría")
+            qty_categoria = df_f.groupby("CATEGORIA")["COLOMBIA QTY"].sum().sort_values(ascending=False)
+            st.bar_chart(qty_categoria)
 
     # --- MATRIZ DE DETALLES Y DESCARGA AL FINAL ---
     st.markdown("<div class='section-title'>📋 MATRIZ DETALLADA Y EXPORTACIÓN</div>", unsafe_allow_html=True)
     columnas_vista = [
         "PLAN", "ORDER DETAIL", "REF", "TIPO DE PRODUCTO", "CATEGORIA",
-        "COLOMBIA QTY", "COLOMBIA PAQS", "ESTATUS CHINA COLOMBIA", 
-        "ESTADO FINAL COLOMBIA"
+        "COLOMBIA QTY", "COLOMBIA PAQS", "ESTADO FINAL COLOMBIA"
     ]
     columnas_vista = list(dict.fromkeys(columnas_vista)) # Eliminar posibles duplicados
     cols_a_mostrar = [c for c in columnas_vista if c in df_f.columns]
