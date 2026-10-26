@@ -59,13 +59,13 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# 📂 Nombre exacto de tu nuevo archivo binario guardado en GitHub
+# 📂 Nombre exacto de tu archivo binario guardado en GitHub
 NOMBRE_ARCHIVO_EXCEL = "BD CHINA REAL INTERNACIONAL.xlsb"
 
 # Columnas clave requeridas de tu pestaña "BASE"
 COLUMNAS_SELECCIONADAS = [
     "PLAN", "ORDER", "ORDER DETAIL", "REF", 
-    "ESTADO FINAL COLOMBIA", "COLOMBIA PAQS", "COLOMBIA PAQS",
+    "ESTADO FINAL COLOMBIA", "COLOMBIA QTY", "COLOMBIA PAQS",
     "N. SEGMENTO", "CATEGORIA", "TIPO DE PRODUCTO", "TIPO DE COMPRA", "N. PERFIL"
 ]
 
@@ -85,14 +85,14 @@ def cargar_datos_locales_binarios(nombre_archivo):
         cols_presentes = [c for c in COLUMNAS_SELECCIONADAS if c in df.columns]
         df = df[cols_presentes]
         
-                # Forzar conversión a texto para evitar errores en las tablas
+        # Forzar conversión a texto para evitar errores en las tablas
         for col in df.columns:
-            if col not in ["COLOMBIA QTY", "COLOMBIA PAQS"]:  # <--- Corregido aquí
+            if col not in ["COLOMBIA QTY", "COLOMBIA PAQS"]:
                 df[col] = df[col].astype(str).str.strip().str.upper()
                 df[col] = df[col].replace(["NAN", "NONE", "", "NAT"], "SIN ASIGNAR")
         
-                # Convertir cantidades a numérico
-        cols_numericas = ["COLOMBIA QTY", "COLOMBIA PAQS"]  # <--- Corregido aquí
+        # 🛡️ Convertir cantidades a numérico de forma ultra segura
+        cols_numericas = ["COLOMBIA QTY", "COLOMBIA PAQS"]
         for col_num in cols_numericas:
             if col_num in df.columns:
                 datos_columna = df[col_num]
@@ -131,22 +131,22 @@ if df is not None and not df.empty:
     
     with f1:
         segmentos = sorted([str(x) for x in df["N. SEGMENTO"].unique() if str(x) != "SIN ASIGNAR"]) if "N. SEGMENTO" in df.columns else []
-        segmento_sel = st.multiselect("Segmento:", options=segmentos, placeholder="Todos los Segmentos")
+        segmento_sel = st.multiselect("Segmentos:", options=segmentos, placeholder="Todos los Segmentos")
     with f2:
         referencias = sorted([str(x) for x in df["REF"].unique() if str(x) != "SIN ASIGNAR"]) if "REF" in df.columns else []
-        ref_sel = st.multiselect("Referencia:", options=referencias, placeholder="Todas las Referencias")
+        ref_sel = st.multiselect("Referencias:", options=referencias, placeholder="Todas las Referencias")
     with f3:
         perfiles = sorted([str(x) for x in df["N. PERFIL"].unique() if str(x) != "SIN ASIGNAR"]) if "N. PERFIL" in df.columns else []
-        perfil_sel = st.multiselect("Perfil", options=perfiles, placeholder="Todos los Perfiles")
+        perfil_sel = st.multiselect("Perfiles / Clasificación:", options=perfiles, placeholder="Todos los Perfiles")
     with f4:
         estados = sorted([str(x) for x in df["ESTADO FINAL COLOMBIA"].unique() if str(x) != "SIN ASIGNAR"]) if "ESTADO FINAL COLOMBIA" in df.columns else []
-        estado_sel = st.multiselect("Estado:", options=estados, placeholder="Todos los Estados")
+        estado_sel = st.multiselect("Estado Final Colombia:", options=estados, placeholder="Todos los Estados")
     with f5:
         compras = sorted([str(x) for x in df["TIPO DE COMPRA"].unique() if str(x) != "SIN ASIGNAR"]) if "TIPO DE COMPRA" in df.columns else []
-        compra_sel = st.multiselect("Tipo de Compra:", options=compras, placeholder="Todos los Tipos")
+        compra_sel = st.multiselect("Tipos de Compra:", options=compras, placeholder="Todos los Tipos")
     with f6:
         planes = sorted([str(x) for x in df["PLAN"].unique() if str(x) != "SIN ASIGNAR"]) if "PLAN" in df.columns else []
-        plan_sel = st.multiselect("Plan:", options=planes, placeholder="Todos los Planes")
+        plan_sel = st.multiselect("Planes / O.P.:", options=planes, placeholder="Todos los Planes")
 
     # Aplicar Filtros Dinámicos (Soporta múltiples selecciones simultáneas)
     df_f = df.copy()
@@ -201,8 +201,14 @@ if df is not None and not df.empty:
         st.markdown("<div class='section-title'>ESTATUS COLOMBIA</div>", unsafe_allow_html=True)
         if "ESTADO FINAL COLOMBIA" in df_f.columns and "COLOMBIA PAQS" in df_f.columns:
             resumen_status = df_f.groupby("ESTADO FINAL COLOMBIA")["COLOMBIA PAQS"].sum().reset_index()
-            total_paqs = resumen_status["COLOMBIA PAQS"].sum()
-            resumen_status["%"] = (resumen_status["COLOMBIA PAQS"] / (total_paqs if total_paqs > 0 else 1) * 100).round(1).astype(str) + " %"
+            
+            # 🛡️ CÁLCULO DE SUMA FORZANDO VALOR ESCALAR DECIMAL
+            suma_paqs_raw = resumen_status["COLOMBIA PAQS"].sum()
+            total_paqs = float(suma_paqs_raw.iloc[0]) if isinstance(suma_paqs_raw, pd.Series) else float(suma_paqs_raw)
+            divisor = total_paqs if total_paqs > 0 else 1.0
+            
+            # Cálculo de Porcentaje Seguro
+            resumen_status["%"] = (resumen_status["COLOMBIA PAQS"] / divisor * 100).round(1).astype(str) + " %"
             
             # Gráfico de barras de Estatus
             st.bar_chart(resumen_status.set_index("ESTADO FINAL COLOMBIA")["COLOMBIA PAQS"])
@@ -217,31 +223,31 @@ if df is not None and not df.empty:
     with col_derecha:
         st.markdown("<div class='section-title'>ANÁLISIS DE CATEGORÍA Y PRODUCTO</div>", unsafe_allow_html=True)
         
-        if 'TIPO DE PRODUCTO' in df_f.columns and 'COLOMBIA PAQS' in df_f.columns:
+        if 'TIPO DE PRODUCTO' in df_f.columns and 'COLOMBIA QTY' in df_f.columns:
             st.subheader("🧵 Cantidad de Unidades (QTY) por Tipo de Producto")
-            qty_producto = df_f.groupby("TIPO DE PRODUCTO")["COLOMBIA PAQS"].sum().sort_values(ascending=False)
+            qty_producto = df_f.groupby("TIPO DE PRODUCTO")["COLOMBIA QTY"].sum().sort_values(ascending=False)
             st.bar_chart(qty_producto)
             
-        if 'CATEGORIA' in df_f.columns and 'COLOMBIA PAQS' in df_f.columns:
+        if 'CATEGORIA' in df_f.columns and 'COLOMBIA QTY' in df_f.columns:
             st.subheader("📁 Volumen por Categoría")
-            qty_categoria = df_f.groupby("CATEGORIA")["COLOMBIA PAQS"].sum().sort_values(ascending=False)
+            qty_categoria = df_f.groupby("CATEGORIA")["COLOMBIA QTY"].sum().sort_values(ascending=False)
             st.bar_chart(qty_categoria)
 
     # --- MATRIZ DE DETALLES Y DESCARGA AL FINAL ---
     st.markdown("<div class='section-title'>📋 MATRIZ DETALLADA Y EXPORTACIÓN</div>", unsafe_allow_html=True)
     columnas_vista = [
         "PLAN", "ORDER DETAIL", "REF", "TIPO DE PRODUCTO", "CATEGORIA",
-        "", "COLOMBIA PAQS", "ESTADO FINAL COLOMBIA"
+        "COLOMBIA QTY", "COLOMBIA PAQS", "ESTADO FINAL COLOMBIA"
     ]
     columnas_vista = list(dict.fromkeys(columnas_vista)) # Eliminar posibles duplicados
     cols_a_mostrar = [c for c in columnas_vista if c in df_f.columns]
     
     if cols_a_mostrar:
-        # ⚡ EL TRUCO CLAVE: Mostramos solo las primeras 100 filas para que la web vuele al filtrar
+        # Mostramos las primeras 100 filas para agilizar el renderizado
         st.markdown(f"⚠️ *Mostrando las primeras **100 filas** de un total de **{len(df_f):,}** registros filtrados. Descarga el reporte para ver el detalle completo.*")
         st.dataframe(df_f[cols_a_mostrar].head(100), width="stretch", hide_index=True)
         
-        # Botón de Descarga (Este SÍ descarga el 100% de los datos filtrados de forma limpia)
+        # Botón de Descarga
         csv_data = df_f[cols_a_mostrar].to_csv(index=False).encode('utf-8')
         st.download_button(
             label="📥 Descargar datos filtrados completos (CSV)",
