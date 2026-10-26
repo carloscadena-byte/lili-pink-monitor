@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import requests
+import re
 from io import BytesIO
 
 # Configuración visual de la aplicación para Móvil y Web (Ancho completo)
@@ -62,8 +63,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # 🔑 El ID real de tu archivo de Google Drive
-ID_GOOGLE_DRIVE = "1llhosnqf0zf7FB8bsXgHtNLzbOjio2ro" 
-URL_DESCARGA = f"https://drive.google.com/uc?export=download&id={ID_GOOGLE_DRIVE}"
+ID_GOOGLE_DRIVE = "1llhosnqf0zf7FB8bsXgHtNLzbOjio2ro"
 
 # Columnas clave requeridas para los cálculos del dashboard
 COLUMNAS_SELECCIONADAS = [
@@ -75,22 +75,34 @@ COLUMNAS_SELECCIONADAS = [
 ]
 
 @st.cache_data(ttl=300)
-def cargar_datos_desde_drive(url):
+def cargar_datos_desde_drive(file_id):
     try:
         session = requests.Session()
-        # Descarga con bypass de advertencia de virus de Google para archivos grandes
-        respuesta = session.get(url, stream=True)
+        url_base = "https://docs.google.com/uc?export=download"
+        
+        # Primera solicitud para buscar si Google Drive pide confirmación de descarga por virus
+        respuesta = session.get(url_base, params={'id': file_id}, stream=True)
+        
         token = None
+        # Método 1: Buscar token en cookies
         for key, value in respuesta.cookies.items():
             if key.startswith('download_warning'):
                 token = value
                 break
+                
+        # Método 2: Buscar token en el HTML de advertencia (si Google cambió las cookies)
+        if not token:
+            match = re.search(r'confirm=([a-zA-Z0-9_]+)', respuesta.text)
+            if match:
+                token = match.group(1)
+                
+        # Si se encontró un token de confirmación, hacemos la descarga final con el token
         if token:
-            respuesta = session.get(url + f"&confirm={token}", stream=True)
+            respuesta = session.get(url_base, params={'id': file_id, 'confirm': token}, stream=True)
             
         respuesta.raise_for_status()
         
-        # Lee la pestaña "BASE" usando el motor openpyxl (100% compatible con BytesIO)
+        # Lee la pestaña "BASE" usando el motor openpyxl (100% compatible con flujos en memoria)
         df = pd.read_excel(BytesIO(respuesta.content), header=1, sheet_name="BASE", engine="openpyxl")
         
         # Normalizar nombres de columnas a mayúsculas
@@ -100,7 +112,7 @@ def cargar_datos_desde_drive(url):
         cols_presentes = [c for c in COLUMNAS_SELECCIONADAS if c in df.columns]
         df = df[cols_presentes]
         
-        # Forzar conversión a texto para evitar errores de PyArrow en las tablas
+        # Forzar conversión a texto para evitar errores en las tablas
         for col in df.columns:
             if col not in ["COLOMBIA QTY", "COLOMBIA PAQS", "PLAN PLANEACION", "DIAS FICHA - CREACION", "DIAS CREACION - ENVIO", "DIAS ENVIO - CONFIRMACION"]:
                 df[col] = df[col].astype(str).str.strip().str.upper()
@@ -118,7 +130,7 @@ def cargar_datos_desde_drive(url):
 
 # --- CARGA CON SPINNER VISUAL ---
 with st.spinner("⏳ Descargando base de datos de 34 MB desde Google Drive..."):
-    df, error = cargar_datos_desde_drive(URL_DESCARGA)
+    df, error = cargar_datos_desde_drive(ID_GOOGLE_DRIVE)
 
 if error:
     st.error(f"⚠️ {error}")
@@ -136,6 +148,7 @@ if df is not None and not df.empty:
 
     # --- BARRA SUPERIOR DE FILTROS (Múltiple Selección) ---
     st.markdown("<div class='section-title'>🎛️ Filtros Globales de Control (Selección Múltiple)</div>", unsafe_allow_html=True)
+    
     f1, f2, f3 = st.columns(3)
     f4, f5, f6 = st.columns(3)
     
