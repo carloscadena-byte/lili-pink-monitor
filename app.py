@@ -182,4 +182,3 @@ with tab_detalle:
         file_name="reporte_sourcing_filtrado.csv",
         mime="text/csv"
     )
-
