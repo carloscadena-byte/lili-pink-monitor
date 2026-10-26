@@ -65,7 +65,7 @@ NOMBRE_ARCHIVO_EXCEL = "BD CHINA REAL INTERNACIONAL.xlsb"
 # Columnas clave requeridas de tu pestaña "BASE"
 COLUMNAS_SELECCIONADAS = [
     "PLAN", "ORDER", "ORDER DETAIL", "REF", 
-    "ESTADO FINAL COLOMBIA", "COLOMBIA QTY", "COLOMBIA PAQS",
+    "ESTADO FINAL COLOMBIA", "COLOMBIA PAQS", "COLOMBIA PAQS",
     "N. SEGMENTO", "CATEGORIA", "TIPO DE PRODUCTO", "TIPO DE COMPRA", "N. PERFIL"
 ]
 
@@ -87,12 +87,12 @@ def cargar_datos_locales_binarios(nombre_archivo):
         
         # Forzar conversión a texto para evitar errores en las tablas
         for col in df.columns:
-            if col not in ["COLOMBIA QTY", "COLOMBIA PAQS"]:
+            if col not in ["COLOMBIA PAQS", "COLOMBIA PAQS"]:
                 df[col] = df[col].astype(str).str.strip().str.upper()
                 df[col] = df[col].replace(["NAN", "NONE", "", "NAT"], "SIN ASIGNAR")
         
         # Convertir cantidades a numérico
-        cols_numericas = ["COLOMBIA QTY", "COLOMBIA PAQS"]
+        cols_numericas = ["COLOMBIA PAQS", "COLOMBIA PAQS"]
         for col_num in cols_numericas:
             if col_num in df.columns:
                 df[col_num] = pd.to_numeric(df[col_num], errors="coerce").fillna(0)
@@ -214,21 +214,21 @@ if df is not None and not df.empty:
     with col_derecha:
         st.markdown("<div class='section-title'>ANÁLISIS DE CATEGORÍA Y PRODUCTO</div>", unsafe_allow_html=True)
         
-        if 'TIPO DE PRODUCTO' in df_f.columns and 'COLOMBIA QTY' in df_f.columns:
+        if 'TIPO DE PRODUCTO' in df_f.columns and 'COLOMBIA PAQS' in df_f.columns:
             st.subheader("🧵 Cantidad de Unidades (QTY) por Tipo de Producto")
-            qty_producto = df_f.groupby("TIPO DE PRODUCTO")["COLOMBIA QTY"].sum().sort_values(ascending=False)
+            qty_producto = df_f.groupby("TIPO DE PRODUCTO")["COLOMBIA PAQS"].sum().sort_values(ascending=False)
             st.bar_chart(qty_producto)
             
-        if 'CATEGORIA' in df_f.columns and 'COLOMBIA QTY' in df_f.columns:
+        if 'CATEGORIA' in df_f.columns and 'COLOMBIA PAQS' in df_f.columns:
             st.subheader("📁 Volumen por Categoría")
-            qty_categoria = df_f.groupby("CATEGORIA")["COLOMBIA QTY"].sum().sort_values(ascending=False)
+            qty_categoria = df_f.groupby("CATEGORIA")["COLOMBIA PAQS"].sum().sort_values(ascending=False)
             st.bar_chart(qty_categoria)
 
     # --- MATRIZ DE DETALLES Y DESCARGA AL FINAL ---
     st.markdown("<div class='section-title'>📋 MATRIZ DETALLADA Y EXPORTACIÓN</div>", unsafe_allow_html=True)
     columnas_vista = [
         "PLAN", "ORDER DETAIL", "REF", "TIPO DE PRODUCTO", "CATEGORIA",
-        "COLOMBIA QTY", "COLOMBIA PAQS", "ESTADO FINAL COLOMBIA"
+        "", "COLOMBIA PAQS", "ESTADO FINAL COLOMBIA"
     ]
     columnas_vista = list(dict.fromkeys(columnas_vista)) # Eliminar posibles duplicados
     cols_a_mostrar = [c for c in columnas_vista if c in df_f.columns]
