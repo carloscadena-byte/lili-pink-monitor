@@ -59,9 +59,8 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# 📂 Nombre exacto del archivo Excel que subiste a GitHub
-# (Asegúrate de que coincida exactamente con las mayúsculas y minúsculas)
-NOMBRE_ARCHIVO_EXCEL = "BD CHINA REAL INTERNACIONAL.xlsx"
+# 📂 Nombre exacto de tu nuevo archivo binario guardado en GitHub
+NOMBRE_ARCHIVO_EXCEL = "BD CHINA REAL INTERNACIONAL.xlsb"
 
 # Columnas clave requeridas de tu pestaña "BASE"
 COLUMNAS_SELECCIONADAS = [
@@ -72,12 +71,12 @@ COLUMNAS_SELECCIONADAS = [
     "N. SEGMENTO", "CATEGORIA", "TIPO DE PRODUCTO", "TIPO DE COMPRA", "N. PERFIL"
 ]
 
-@st.cache_data(ttl=3600) # Caché de 1 hora (ahora que es local, no requiere sincronizaciones de red frecuentes)
-def cargar_datos_locales(nombre_archivo):
+@st.cache_data(ttl=3600) # Caché de 1 hora
+def cargar_datos_locales_binarios(nombre_archivo):
     try:
-        # Lee directamente el archivo subido a GitHub apuntando a "BASE"
-        # y empezando los encabezados desde la Fila 2 (header=1)
-        df = pd.read_excel(nombre_archivo, header=1, sheet_name="BASE", engine="openpyxl")
+        # Lee el archivo binario (.xlsb) usando el motor pyxlsb para máxima velocidad
+        # Apunta a la pestaña "BASE" y toma los encabezados de la fila 2 (header=1)
+        df = pd.read_excel(nombre_archivo, header=1, sheet_name="BASE", engine="pyxlsb")
         
         # Normalizar nombres de columnas a mayúsculas
         df.columns = [str(c).strip().upper() for c in df.columns]
@@ -103,13 +102,13 @@ def cargar_datos_locales(nombre_archivo):
                 
         return df, None
     except FileNotFoundError:
-        return None, f"El archivo '{nombre_archivo}' no se encuentra en el repositorio de GitHub. Por favor, súbelo usando la opción 'Upload files'."
+        return None, f"El archivo '{nombre_archivo}' no se encuentra en el repositorio de GitHub. Por favor, asegúrate de subirlo."
     except Exception as e:
-        return None, f"Error al leer la base de datos: {e}"
+        return None, f"Error al leer la base de datos binaria: {e}"
 
 # --- CARGA CON SPINNER VISUAL ---
-with st.spinner("⏳ Procesando base de datos interna desde el servidor..."):
-    df, error = cargar_datos_locales(NOMBRE_ARCHIVO_EXCEL)
+with st.spinner("⏳ Procesando base de datos binaria optimizada en el servidor..."):
+    df, error = cargar_datos_locales_binarios(NOMBRE_ARCHIVO_EXCEL)
 
 if error:
     st.error(f"⚠️ {error}")
