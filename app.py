@@ -187,13 +187,13 @@ if df is not None and not df.empty:
         unsafe_allow_html=True,
     )
 
-    # --- FILTROS GLOBALES ---
+    # --- FILTROS GLOBALES (Diseño Simétrico de 4 columnas) ---
     st.markdown(
         "<div class='section-title'>🎛️ Filtros Globales de Control (Selección Múltiple)</div>",
         unsafe_allow_html=True,
     )
-    f1, f2, f3, f7 = st.columns(4)
-    f4, f5, f6 = st.columns(3)
+    f1, f2, f3, f4 = st.columns(4)
+    f5, f6, f7, f8 = st.columns(4)
     
     with f1:
         segmentos = (
@@ -270,15 +270,15 @@ if df is not None and not df.empty:
             "Planes / O.P.:", options=planes, placeholder="Todos los Planes"
         )
     with f7:
-        planes = (
+        colecciones = (
             sorted([
                 str(x) for x in df["COLECCIÓN"].unique() if str(x) != "SIN ASIGNAR"
             ])
             if "COLECCIÓN" in df.columns
             else []
         )
-        plan_sel = st.multiselect(
-            "Colección", options=colecciones, placeholder="Todas las Colecciones"
+        coleccion_sel = st.multiselect(
+            "Colección:", options=colecciones, placeholder="Todas las Colecciones"
         )      
 
     # Aplicar filtros
@@ -295,6 +295,8 @@ if df is not None and not df.empty:
         df_f = df_f[df_f["TIPO DE COMPRA"].isin(compra_sel)]
     if plan_sel:
         df_f = df_f[df_f["PLAN"].isin(plan_sel)]
+    if coleccion_sel:
+        df_f = df_f[df_f["COLECCIÓN"].isin(coleccion_sel)]
 
     if st.sidebar.button("🔄 Refrescar Caché Local"):
         st.cache_data.clear()
@@ -310,9 +312,11 @@ if df is not None and not df.empty:
             unsafe_allow_html=True,
         )
         k_col1, k_col2, k_col3 = st.columns(3)
-        num_ordenes = df_f["ORDER"].nunique() if "ORDER" in df_f.columns else 0
-        num_refs = df_f["REF"].nunique() if "REF" in df_f.columns else 0
-        num_planes = df_f["PLAN"].nunique() if "PLAN" in df_f.columns else 0
+        
+        # 🔢 Conteo único estricto excluyendo "SIN ASIGNAR"
+        num_ordenes = df_f[df_f["ORDER"] != "SIN ASIGNAR"]["ORDER"].nunique() if "ORDER" in df_f.columns else 0
+        num_refs = df_f[df_f["REF"] != "SIN ASIGNAR"]["REF"].nunique() if "REF" in df_f.columns else 0
+        num_planes = df_f[df_f["PLAN"] != "SIN ASIGNAR"]["PLAN"].nunique() if "PLAN" in df_f.columns else 0
         
         with k_col1:
             st.markdown(
