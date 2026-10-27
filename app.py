@@ -192,7 +192,7 @@ if df is not None and not df.empty:
         "<div class='section-title'>🎛️ Filtros Globales de Control (Selección Múltiple)</div>",
         unsafe_allow_html=True,
     )
-    f1, f2, f3 = st.columns(3)
+    f1, f2, f3, f7 = st.columns(4)
     f4, f5, f6 = st.columns(3)
     
     with f1:
@@ -269,6 +269,17 @@ if df is not None and not df.empty:
         plan_sel = st.multiselect(
             "Planes / O.P.:", options=planes, placeholder="Todos los Planes"
         )
+    with f7:
+        planes = (
+            sorted([
+                str(x) for x in df["COLECCIÓN"].unique() if str(x) != "SIN ASIGNAR"
+            ])
+            if "COLECCIÓN" in df.columns
+            else []
+        )
+        plan_sel = st.multiselect(
+            "Colección", options=Colección, placeholder="Todas las Colecciones"
+        )      
 
     # Aplicar filtros
     df_f = df.copy()
