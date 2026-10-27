@@ -314,7 +314,7 @@ if df is not None and not df.empty:
         k_col1, k_col2, k_col3 = st.columns(3)
         
         # 🔢 Conteo único estricto excluyendo "SIN ASIGNAR"
-        num_ordenes = df_f[df_f["ORDER"] != "SIN ASIGNAR"]["ORDER"].nunique() if "ORDER" in df_f.columns else 0
+        num_ordenes = df_f[df_f["ORDER DETAIL"] != "SIN ASIGNAR"]["ORDER DETAIL"].nunique() if "ORDER DETAIL" in df_f.columns else 0
         num_refs = df_f[df_f["REF"] != "SIN ASIGNAR"]["REF"].nunique() if "REF" in df_f.columns else 0
         num_planes = df_f[df_f["PLAN"] != "SIN ASIGNAR"]["PLAN"].nunique() if "PLAN" in df_f.columns else 0
         
