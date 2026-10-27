@@ -278,7 +278,7 @@ if df is not None and not df.empty:
             else []
         )
         plan_sel = st.multiselect(
-            "Colección", options=Colección, placeholder="Todas las Colecciones"
+            "Colección", options=Colecciones, placeholder="Todas las Colecciones"
         )      
 
     # Aplicar filtros
