@@ -86,6 +86,8 @@ COLUMNAS_SELECCIONADAS = [
     "TIPO DE PRODUCTO",
     "TIPO DE COMPRA",
     "N. PERFIL",
+    "COLECCIÓN",
+    "FECHA DE DESPACHO CHINA COLOMBIA",
 ]
 
 @st.cache_data(ttl=3600)
